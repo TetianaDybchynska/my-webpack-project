@@ -1,59 +1,113 @@
-const path = require('path');                     
-const HtmlWebpackPlugin = require('html-webpack-plugin'); 
-const MiniCssExtractPlugin = require('mini-css-extract-plugin'); 
-const { CleanWebpackPlugin } = require('clean-webpack-plugin');  
+import path from 'path';
+import { fileURLToPath } from 'url';
+import HtmlWebpackPlugin from 'html-webpack-plugin';
+import MiniCssExtractPlugin from 'mini-css-extract-plugin';
+import { CleanWebpackPlugin } from 'clean-webpack-plugin';
+import ESLintPlugin from 'eslint-webpack-plugin';
+import { BundleAnalyzerPlugin } from 'webpack-bundle-analyzer';
 
-module.exports = {
-  mode: 'production', 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-  entry: {            
+const isDevelopment = process.env.NODE_ENV === 'development';
+
+export default {
+  mode: isDevelopment ? 'development' : 'production',
+
+  entry: {
     main: './src/index.js',
-    vendor: './src/vendor.js' 
+    vendor: './src/vendor.js',
   },
 
-  output: {         
-    filename: '[name].[contenthash].js', 
+  output: {
+    filename: '[name].[contenthash].js',
     path: path.resolve(__dirname, 'dist'),
-    clean: true 
+    clean: true,
   },
 
   module: {
     rules: [
-     
       {
-        test: /\.css$/i, 
-        use: [MiniCssExtractPlugin.loader, 'css-loader'] 
+        test: /\.css$/i,
+        use: [MiniCssExtractPlugin.loader, 'css-loader'],
       },
-      
       {
-        test: /\.(png|jpg|jpeg|gif|svg)$/i, 
-        type: 'asset/resource' 
+        test: /\.less$/i,
+        use: [MiniCssExtractPlugin.loader, 'css-loader', 'less-loader'],
       },
-      // Обработка шрифтов
       {
-        test: /\.(woff|woff2|eot|ttf|otf)$/i, 
-        type: 'asset/resource'
-      }
-    ]
+        test: /\.(scss|sass)$/i,
+        use: [MiniCssExtractPlugin.loader, 'css-loader', 'sass-loader'],
+      },
+      {
+        test: /\.(png|jpg|jpeg|gif|svg)$/i,
+        type: 'asset/resource',
+      },
+      {
+        test: /\.(woff|woff2|eot|ttf|otf)$/i,
+        type: 'asset/resource',
+      },
+      {
+        test: /\.ts$/,
+        exclude: /node_modules/,
+        use: 'ts-loader',
+      },
+      {
+        test: /\.js$/,
+        exclude: /node_modules/,
+        use: {
+          loader: 'babel-loader',
+          options: {
+            presets: ['@babel/preset-env'],
+          },
+        },
+      },
+    ],
+  },
+
+  resolve: {
+    extensions: ['.js', '.ts'],
   },
 
   plugins: [
-    new CleanWebpackPlugin(), 
-    new HtmlWebpackPlugin({   
+    new CleanWebpackPlugin(),
+    new HtmlWebpackPlugin({
       template: './src/index.html',
       minify: {
-        collapseWhitespace: true, 
-        removeComments: true
-      }
+        collapseWhitespace: true,
+        removeComments: true,
+      },
     }),
-    new MiniCssExtractPlugin({  
-      filename: '[name].[contenthash].css'
-    })
+    new MiniCssExtractPlugin({
+      filename: '[name].[contenthash].css',
+    }),
+    new ESLintPlugin({
+      extensions: ['js', 'ts'], 
+      context: path.resolve(__dirname, './src'), 
+      overrideConfigFile: path.resolve(__dirname, './.eslintrc.js'), 
+      emitWarning: true, 
+      failOnError: false,
+      fix: true 
+    }),
+    new BundleAnalyzerPlugin({
+      analyzerMode: 'static',
+      openAnalyzer: false,
+    }),
   ],
 
-  optimization: {              
+  optimization: {
     splitChunks: {
-      chunks: 'all'            
-    }
-  }
+      chunks: 'all',
+    },
+  },
+
+  devtool: 'source-map',
+
+  devServer: {
+    static: './dist',
+    open: true,
+    hot: true,
+    port: 3000,
+  },
 };
+
